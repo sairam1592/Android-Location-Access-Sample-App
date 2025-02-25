@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Adyen Assignment</string>
+    <string name="alert_dialog_title">Enable Location</string>
+    <string name="alert_dialog_desc">Location is turned off. Please enable it to find nearby venues.</string>
+    <string name="alert_dialog_positive_btn">Enable</string>
+    <string name="alert_dialog_negative_btn">Cancel</string>
+    <string name="location_setting_desc">Location is required to fetch nearby venues. Please enable location.</string>
+    <string name="location_setting_btn_title">Go to Settings</string>
+    <string name="venue_screen_title">Nearby Venues</string>
+</resources>
