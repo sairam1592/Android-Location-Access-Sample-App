@@ -13,7 +13,6 @@ import androidx.activity.ComponentActivity
 import androidx.core.content.ContextCompat
 import com.adyen.android.assignment.R
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationAvailability
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -52,19 +51,18 @@ class MyLocationManager @Inject constructor(@ApplicationContext private val cont
     suspend fun getCurrentLocation(): Location? {
         return try {
             if (hasLocationPermission() && isLocationEnabled()) {
-                fusedLocationClient.getCurrentLocation(
-                    Priority.PRIORITY_HIGH_ACCURACY,
-                    null
-                ).await() ?: fusedLocationClient.lastLocation.await()
+                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .await()
+                    ?: fusedLocationClient.lastLocation.await()
             } else {
                 null
             }
         } catch (e: SecurityException) {
             null
-        } catch (e: Exception) {
-            null
         }
     }
+
+    private var lastKnownLocation: Location? = null
 
     fun requestLocationUpdates(): Flow<Location?> = callbackFlow {
         if (!hasLocationPermission() || !isLocationEnabled()) {
@@ -74,12 +72,10 @@ class MyLocationManager @Inject constructor(@ApplicationContext private val cont
 
         val locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                result.lastLocation?.let { trySend(it) }
-            }
-
-            override fun onLocationAvailability(locationAvailability: LocationAvailability) {
-                if (!locationAvailability.isLocationAvailable) {
-                    trySend(null)
+                val newLocation = result.lastLocation
+                if (newLocation != null && hasSignificantChange(newLocation)) {
+                    lastKnownLocation = newLocation
+                    trySend(newLocation)
                 }
             }
         }
@@ -89,8 +85,12 @@ class MyLocationManager @Inject constructor(@ApplicationContext private val cont
             locationCallback,
             Looper.getMainLooper()
         )
-
         awaitClose { fusedLocationClient.removeLocationUpdates(locationCallback) }
+    }
+
+    private fun hasSignificantChange(newLocation: Location): Boolean {
+        val last = lastKnownLocation ?: return true
+        return newLocation.distanceTo(last) > 100
     }
 
     fun showEnableLocationDialog(activity: ComponentActivity, onDismiss: () -> Unit) {
